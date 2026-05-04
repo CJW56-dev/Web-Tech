@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduHub - Learning Platform</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; margin: 0; scroll-behavior: smooth; }
+    * { font-family: 'DM Sans', sans-serif; }
+    .heading-font { font-family: 'Playfair Display', serif; }
+    .fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .hero-gradient { background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 50%, #1e3a5f 100%); background-size: 200% 200%; animation: gradientShift 10s ease infinite; }
+    @keyframes gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    .card-hover { transition: all 0.3s ease; }
+    .card-hover:hover { transform: translateY(-5px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+    .quiz-option.correct { background: #d1fae5; border-color: #10b981; color: #065f46; }
+    .quiz-option.incorrect { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+    .progress-bar { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 flex flex-col h-full">
+  <div id="app" class="flex flex-col min-h-full">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center gap-2 cursor-pointer" onclick="navigate('home')">
+            <div class="w-9 h-9 bg-[#1e3a5f] rounded-lg flex items-center justify-center">
+              <i data-lucide="graduation-cap" class="w-5 h-5 text-white"></i>
+            </div>
+            <span id="nav-title" class="text-xl font-bold text-[#1e3a5f] heading-font">EduHub</span>
+          </div>
+          <div class="hidden md:flex items-center gap-6">
+            <a class="nav-link text-sm font-medium hover:text-[#1e3a5f] cursor-pointer" onclick="navigate('home')">Home</a>
+            <a class="nav-link text-sm font-medium hover:text-[#1e3a5f] cursor-pointer" onclick="navigate('courses')">Courses</a>
+            <a class="nav-link text-sm font-medium hover:text-[#1e3a5f] cursor-pointer" onclick="navigate('forum')">Forum</a>
+            <a class="nav-link text-sm font-medium hover:text-[#1e3a5f] cursor-pointer" onclick="navigate('bookstore')">Bookstore</a>
+            <a class="nav-link text-sm font-medium hover:text-[#1e3a5f] cursor-pointer" onclick="navigate('portal')">
+              <span id="portal-nav-text">Student Portal</span>
+            </a>
+            <button onclick="showAdminModal()" class="text-amber-600 font-semibold text-sm">🔐 Admin</button>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="navigate('cart')" class="relative p-2 text-slate-600">
+              <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+              <span id="cart-count" class="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-[10px] rounded-full flex items-center justify-center hidden">0</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main id="main-content" class="flex-1"></main>
+
+    <!-- Footer -->
+    <footer class="bg-[#1e3a5f] text-white py-12 mt-auto">
+      <div class="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center md:text-left">
+        <div>
+          <h3 class="font-bold text-lg mb-4 heading-font">EduHub</h3>
+          <p class="text-slate-300 text-sm">Quality education and community resources for the next generation of scholars.</p>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-4">Quick Links</h4>
+          <div class="flex flex-col gap-2 text-sm text-slate-300">
+            <a onclick="navigate('courses')" class="hover:text-white cursor-pointer">Courses</a>
+            <a onclick="navigate('forum')" class="hover:text-white cursor-pointer">Forum</a>
+            <a onclick="navigate('bookstore')" class="hover:text-white cursor-pointer">Bookstore</a>
+          </div>
+        </div>
+        <div>
+          <h4 class="font-semibold mb-4">Support</h4>
+          <p class="text-sm text-slate-300">support@eduhub.edu</p>
+          <div class="flex gap-4 mt-4 justify-center md:justify-start">
+            <i data-lucide="twitter" class="w-5 h-5 text-slate-300 cursor-pointer"></i>
+            <i data-lucide="github" class="w-5 h-5 text-slate-300 cursor-pointer"></i>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Admin Modal -->
+    <div id="admin-modal" class="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center hidden" onclick="if(event.target===this)closeAdminModal()">
+      <div class="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 shadow-2xl fade-in">
+        <h2 class="text-2xl font-bold mb-4 heading-font">Admin Login</h2>
+        <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+          <input id="admin-email" type="email" placeholder="admin@eduhub.edu" class="w-full p-3 border rounded-lg" required>
+          <input id="admin-code" type="password" placeholder="Password (admin123)" class="w-full p-3 border rounded-lg" required>
+          <button class="w-full py-3 bg-amber-600 text-white rounded-lg font-bold">Access Dashboard</button>
+        </form>
+        <button onclick="closeAdminModal()" class="w-full mt-2 text-slate-500 text-sm">Cancel</button>
+      </div>
+    </div>
+
+    <!-- AI Floating Action Button -->
+    <button onclick="toggleAIChat()" class="fixed bottom-6 right-6 w-14 h-14 bg-[#1e3a5f] text-white rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-transform z-40">
+      <i data-lucide="sparkles" class="w-6 h-6"></i>
+    </button>
+
+    <!-- AI Chat Window -->
+    <div id="ai-chat" class="fixed bottom-24 right-6 w-80 h-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-40 flex flex-col hidden overflow-hidden">
+        <div class="bg-[#1e3a5f] p-4 text-white font-bold flex justify-between items-center">
+            <span>EduHub AI</span>
+            <button onclick="toggleAIChat()"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <div id="chat-messages" class="flex-1 p-4 overflow-y-auto bg-slate-50 text-sm space-y-2"></div>
+        <div class="p-3 border-t flex gap-2">
+            <input id="chat-input" type="text" placeholder="Ask something..." class="flex-1 text-sm border rounded-lg px-2 py-1 outline-none">
+            <button onclick="sendChatMessage()" class="bg-[#1e3a5f] text-white p-2 rounded-lg"><i data-lucide="send" class="w-4 h-4"></i></button>
+        </div>
+    </div>
+  </div>
+
+  <script>
+    // Global State
+    let currentPage = 'home';
+    let currentUser = null;
+    let adminUser = null;
+    let cart = [];
+    let forumPosts = [];
+    let orders = [];
+    let courseProgress = JSON.parse(localStorage.getItem('eduProgress') || '{}');
+
+    // Data Definitions
+    const courses = [
+      { id: 'cs101', name: 'Intro to Computer Science', subject: 'CS', icon: 'cpu', color: '#1e3a5f', modules: [
+        { title: 'Algorithms', type: 'lecture', content: 'Study of efficient procedures.' },
+        { title: 'Logic Quiz', type: 'quiz', questions: [{q: 'Is binary base 2?', options: ['Yes', 'No'], answer: 0}] }
+      ]},
+      { id: 'math201', name: 'Linear Algebra', subject: 'Math', icon: 'grid', color: '#7c3aed', modules: [
+        { title: 'Matrices', type: 'lecture', content: 'Rectangular arrays of numbers.' }
+      ]}
+    ];
+
+    const books = [
+      { id: 'b1', title: 'Algorithms Unlocked', author: 'T. Cormen', price: 29.99, rating: 4.8 },
+      { id: 'b2', title: 'Design Patterns', author: 'Gang of Four', price: 45.00, rating: 4.9 },
+      { id: 'b3', title: 'Calculus Early Trans', author: 'Stewart', price: 89.99, rating: 4.5 }
+    ];
+
+    // Core Logic
+    function navigate(page, params) {
+      currentPage = page;
+      const main = document.getElementById('main-content');
+      main.innerHTML = ''; 
+
+      if (page === 'home') renderHome();
+      else if (page === 'courses') renderCourses();
+      else if (page === 'course') renderCourseDetail(params);
+      else if (page === 'bookstore') renderBookstore();
+      else if (page === 'cart') renderCart();
+      else if (page === 'forum') renderForum();
+      else if (page === 'portal') renderPortal();
+      else if (page === 'admin') renderAdmin();
+
+      lucide.createIcons();
+      window.scrollTo(0,0);
+    }
+
+    // Render Helpers
+    function renderHome() {
+      document.getElementById('main-content').innerHTML = `
+        <section class="hero-gradient text-white py-24 px-4 text-center">
+          <div class="max-w-4xl mx-auto fade-in">
+            <h1 class="text-5xl md:text-6xl font-bold heading-font mb-6">Empower Your Learning</h1>
+            <p class="text-xl text-blue-100 mb-8">Access world-class resources and connect with a community of peers.</p>
+            <div class="flex gap-4 justify-center">
+              <button onclick="navigate('courses')" class="bg-white text-[#1e3a5f] px-8 py-3 rounded-xl font-bold shadow-lg">Explore Courses</button>
+              <button onclick="navigate('forum')" class="bg-[#1e3a5f]/30 border border-white px-8 py-3 rounded-xl font-bold">Join Forum</button>
+            </div>
+          </div>
+        </section>
+        <section class="py-16 max-w-7xl mx-auto px-4 grid md:grid-cols-3 gap-8">
+            <div class="bg-white p-8 rounded-2xl border card-hover text-center">
+                <i data-lucide="book-open" class="w-12 h-12 text-[#1e3a5f] mx-auto mb-4"></i>
+                <h3 class="font-bold text-xl mb-2">Study Materials</h3>
+                <p class="text-slate-500 text-sm">Professional lecture notes and interactive quizzes.</p>
+            </div>
+            <div class="bg-white p-8 rounded-2xl border card-hover text-center">
+                <i data-lucide="users" class="w-12 h-12 text-[#1e3a5f] mx-auto mb-4"></i>
+                <h3 class="font-bold text-xl mb-2">Student Community</h3>
+                <p class="text-slate-500 text-sm">Collaborate and solve problems together.</p>
+            </div>
+            <div class="bg-white p-8 rounded-2xl border card-hover text-center">
+                <i data-lucide="shopping-bag" class="w-12 h-12 text-[#1e3a5f] mx-auto mb-4"></i>
+                <h3 class="font-bold text-xl mb-2">Official Bookstore</h3>
+                <p class="text-slate-500 text-sm">Get the best prices on academic textbooks.</p>
+            </div>
+        </section>
+      `;
+    }
+
+    function renderCourses() {
+      const main = document.getElementById('main-content');
+      main.innerHTML = `
+        <div class="max-w-7xl mx-auto px-4 py-12">
+            <h1 class="text-3xl font-bold mb-8 heading-font">Course Catalogue</h1>
+            <div class="grid md:grid-cols-3 gap-6">
+                ${courses.map(c => `
+                    <div onclick="navigate('course', '${c.id}')" class="bg-white border rounded-2xl overflow-hidden card-hover cursor-pointer">
+                        <div class="h-2" style="background:${c.color}"></div>
+                        <div class="p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <i data-lucide="${c.icon}" class="w-10 h-10 p-2 rounded-lg" style="background:${c.color}20; color:${c.color}"></i>
+                                <span class="text-xs font-bold uppercase text-slate-400">${c.subject}</span>
+                            </div>
+                            <h3 class="font-bold text-xl mb-2">${c.name}</h3>
+                            <p class="text-slate-500 text-sm mb-4">${c.modules.length} Modules</p>
+                            ${courseProgress[c.id] ? `
+                                <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                    <div class="bg-green-500 h-full" style="width:${courseProgress[c.id]}%"></div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+      `;
+    }
+
+    function renderCourseDetail(id) {
+        const course = courses.find(c => c.id === id);
+        document.getElementById('main-content').innerHTML = `
+            <div class="max-w-4xl mx-auto px-4 py-12 fade-in">
+                <button onclick="navigate('courses')" class="text-slate-500 text-sm mb-4 flex items-center gap-1">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Back
+                </button>
+                <h1 class="text-4xl font-bold heading-font mb-2">${course.name}</h1>
+                <div class="space-y-4 mt-8">
+                    ${course.modules.map((m, idx) => `
+                        <div class="bg-white p-6 rounded-xl border flex justify-between items-center">
+                            <div>
+                                <h4 class="font-bold">${m.title}</h4>
+                                <p class="text-xs text-slate-400 uppercase">${m.type}</p>
+                            </div>
+                            <button onclick="viewModule('${course.id}', ${idx})" class="bg-[#1e3a5f] text-white px-6 py-2 rounded-lg text-sm">Start</button>
+                        </div>
+                    `).join('')}
+                </div>
+                <div id="module-viewer" class="mt-12"></div>
+            </div>
+        `;
+    }
+
+    window.viewModule = (courseId, idx) => {
+        const course = courses.find(c => c.id === courseId);
+        const mod = course.modules[idx];
+        const viewer = document.getElementById('module-viewer');
+        
+        if(mod.type === 'quiz') {
+            viewer.innerHTML = `
+                <div class="bg-slate-900 text-white p-8 rounded-2xl">
+                    <h3 class="text-xl font-bold mb-6">${mod.title}</h3>
+                    <div id="quiz-box" class="space-y-4">
+                        ${mod.questions.map((q, qIdx) => `
+                            <p class="mb-4">${q.q}</p>
+                            <div class="grid gap-2">
+                                ${q.options.map((opt, oIdx) => `
+                                    <button onclick="handleQuizAnswer('${courseId}', ${idx}, ${oIdx})" class="quiz-option text-left p-4 border border-white/20 rounded-xl hover:bg-white/10 transition">
+                                        ${opt}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        } else {
+            viewer.innerHTML = `
+                <div class="bg-white border p-8 rounded-2xl shadow-inner">
+                    <h3 class="text-2xl font-bold mb-4">${mod.title}</h3>
+                    <p class="text-slate-600 leading-relaxed">${mod.content}</p>
+                    <button onclick="completeModule('${courseId}', ${idx})" class="mt-8 bg-green-600 text-white px-8 py-2 rounded-lg font-bold">Mark Complete</button>
+                </div>
+            `;
+        }
+        viewer.scrollIntoView({ behavior: 'smooth' });
+        lucide.createIcons();
+    };
+
+    window.completeModule = (courseId, idx) => {
+        courseProgress[courseId] = 100; // Simplified for demo
+        localStorage.setItem('eduProgress', JSON.stringify(courseProgress));
+        showToast('Module Completed!', 'success');
+        renderCourseDetail(courseId);
+    };
+
+    window.handleQuizAnswer = (courseId, modIdx, selectedIdx) => {
+        const course = courses.find(c => c.id === courseId);
+        const correct = course.modules[modIdx].questions[0].answer;
+        const options = document.querySelectorAll('.quiz-option');
+        
+        options.forEach((opt, i) => {
+            if(i === correct) opt.classList.add('correct');
+            else if(i === selectedIdx) opt.classList.add('incorrect');
+        });
+
+        if(selectedIdx === correct) {
+            showToast('Correct!', 'success');
+            setTimeout(() => completeModule(courseId, modIdx), 1500);
+        }
+    };
+
+    function renderBookstore() {
+        document.getElementById('main-content').innerHTML = `
+            <div class="max-w-7xl mx-auto px-4 py-12">
+                <div class="flex justify-between items-end mb-8">
+                    <h1 class="text-3xl font-bold heading-font">EduHub Bookstore</h1>
+                    <p class="text-slate-400 text-sm">Official Undergraduate Textbooks</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                    ${books.map(b => `
+                        <div class="bg-white rounded-2xl border overflow-hidden card-hover flex flex-col">
+                            <div class="h-48 bg-slate-100 flex items-center justify-center">
+                                <i data-lucide="book" class="w-16 h-16 text-slate-300"></i>
+                            </div>
+                            <div class="p-6 flex-1 flex flex-col">
+                                <h3 class="font-bold text-lg mb-1">${b.title}</h3>
+                                <p class="text-slate-500 text-sm mb-4">by ${b.author}</p>
+                                <div class="mt-auto flex justify-between items-center">
+                                    <span class="text-2xl font-bold text-[#1e3a5f]">$${b.price.toFixed(2)}</span>
+                                    <button onclick="addToCart('${b.id}')" class="bg-[#1e3a5f] text-white p-3 rounded-xl hover:shadow-lg transition">
+                                        <i data-lucide="plus" class="w-5 h-5"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    function renderForum() {
+        document.getElementById('main-content').innerHTML = `
+            <div class="max-w-4xl mx-auto px-4 py-12">
+                <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-3xl font-bold heading-font">Student Discussion</h1>
+                    <button onclick="showPostForm()" class="bg-[#1e3a5f] text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2">
+                        <i data-lucide="plus" class="w-5 h-5"></i> New Post
+                    </button>
+                </div>
+                <div id="post-form-container" class="hidden mb-8">
+                    <div class="bg-white p-6 rounded-2xl border shadow-lg">
+                        <input id="f-title" type="text" placeholder="Title" class="w-full mb-3 p-3 border rounded-lg">
+                        <textarea id="f-content" placeholder="What's on your mind?" class="w-full h-32 p-3 border rounded-lg mb-3"></textarea>
+                        <button onclick="submitPost()" class="bg-[#1e3a5f] text-white px-6 py-2 rounded-lg">Post</button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    ${forumPosts.length ? forumPosts.slice().reverse().map(p => `
+                        <div class="bg-white p-6 rounded-2xl border">
+                            <h3 class="font-bold text-xl mb-2">${p.title}</h3>
+                            <p class="text-slate-600 text-sm mb-4">${p.content}</p>
+                            <div class="flex items-center justify-between text-xs text-slate-400">
+                                <span>Post by ${p.author} • ${new Date(p.timestamp).toLocaleDateString()}</span>
+                                <div class="flex gap-4">
+                                    <span class="flex items-center gap-1"><i data-lucide="message-square" class="w-3 h-3"></i> 0</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('') : '<p class="text-center text-slate-400 py-20">No posts yet. Start the conversation!</p>'}
+                </div>
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    // Portal Logic
+    function renderPortal() {
+        if(!currentUser) {
+            document.getElementById('main-content').innerHTML = `
+                <div class="max-w-md mx-auto py-24 px-4">
+                    <div class="bg-white p-8 rounded-3xl border shadow-xl text-center">
+                        <h2 class="text-3xl font-bold heading-font mb-6">Student Login</h2>
+                        <input id="std-name" type="text" placeholder="Full Name" class="w-full p-4 border rounded-xl mb-4">
+                        <input id="std-email" type="email" placeholder="Email Address" class="w-full p-4 border rounded-xl mb-6">
+                        <button onclick="handleUserLogin()" class="w-full bg-[#1e3a5f] text-white py-4 rounded-xl font-bold text-lg">Enter Portal</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            const userOrders = orders.filter(o => o.author === currentUser.name);
+            document.getElementById('main-content').innerHTML = `
+                <div class="max-w-7xl mx-auto px-4 py-12">
+                    <div class="bg-gradient-to-r from-[#1e3a5f] to-[#2c5282] p-10 rounded-3xl text-white mb-10 flex justify-between items-center">
+                        <div>
+                            <h1 class="text-4xl font-bold heading-font">Hello, ${currentUser.name}</h1>
+                            <p class="opacity-80">${currentUser.email}</p>
+                        </div>
+                        <button onclick="logout()" class="bg-white/20 p-3 rounded-xl hover:bg-white/30"><i data-lucide="log-out" class="w-6 h-6"></i></button>
+                    </div>
+                    <div class="grid md:grid-cols-3 gap-8">
+                        <div class="md:col-span-2 space-y-6">
+                            <h2 class="text-2xl font-bold">My Courses</h2>
+                            <div class="grid gap-4">
+                                ${courses.map(c => `
+                                    <div class="bg-white p-6 rounded-2xl border flex items-center justify-between">
+                                        <div class="flex gap-4 items-center">
+                                            <i data-lucide="${c.icon}" class="w-8 h-8 text-[#1e3a5f]"></i>
+                                            <span class="font-bold">${c.name}</span>
+                                        </div>
+                                        <span class="font-bold text-slate-300">${courseProgress[c.id] || 0}%</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="space-y-6">
+                            <h2 class="text-2xl font-bold">Purchase History</h2>
+                            <div class="bg-white p-6 rounded-2xl border divide-y">
+                                ${userOrders.length ? userOrders.map(o => `
+                                    <div class="py-4">
+                                        <p class="font-bold text-sm">${o.title}</p>
+                                        <p class="text-xs text-[#1e3a5f]">$${Number(o.total).toFixed(2)}</p>
+                                    </div>
+                                `).join('') : '<p class="text-xs text-slate-400">No orders yet</p>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+    }
+
+    // Admin Dashboard
+    function renderAdmin() {
+        if(!adminUser) { navigate('home'); return; }
+        const revenue = orders.reduce((acc, curr) => acc + Number(curr.total), 0);
+        document.getElementById('main-content').innerHTML = `
+            <div class="max-w-7xl mx-auto px-4 py-12">
+                <div class="flex justify-between items-center mb-8">
+                    <h1 class="text-3xl font-bold heading-font">Admin Overview</h1>
+                    <button onclick="adminLogout()" class="text-red-500 font-bold">Logout</button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+                    <div class="bg-[#1e3a5f] text-white p-8 rounded-3xl">
+                        <p class="text-sm opacity-70">Total Revenue</p>
+                        <h2 class="text-4xl font-bold">$${revenue.toFixed(2)}</h2>
+                    </div>
+                    <div class="bg-white border p-8 rounded-3xl">
+                        <p class="text-sm text-slate-400">Total Orders</p>
+                        <h2 class="text-4xl font-bold text-[#1e3a5f]">${orders.length}</h2>
+                    </div>
+                    <div class="bg-white border p-8 rounded-3xl">
+                        <p class="text-sm text-slate-400">Forum Posts</p>
+                        <h2 class="text-4xl font-bold text-[#1e3a5f]">${forumPosts.length}</h2>
+                    </div>
+                    <div class="bg-white border p-8 rounded-3xl">
+                        <p class="text-sm text-slate-400">Students</p>
+                        <h2 class="text-4xl font-bold text-[#1e3a5f]">${Math.floor(Math.random()*100) + 1}</h2>
+                    </div>
+                </div>
+                <div class="bg-white rounded-3xl border p-8">
+                    <h3 class="text-xl font-bold mb-6">Recent Sales</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <thead>
+                                <tr class="text-slate-400 text-sm">
+                                    <th class="pb-4">Customer</th>
+                                    <th class="pb-4">Amount</th>
+                                    <th class="pb-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${orders.map(o => `
+                                    <tr class="border-t">
+                                        <td class="py-4 text-sm font-bold">${o.author}</td>
+                                        <td class="py-4 text-sm">$${Number(o.total).toFixed(2)}</td>
+                                        <td class="py-4"><span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">Completed</span></td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Shopping Cart Logic
+    function renderCart() {
+        const subtotal = cart.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
+        document.getElementById('main-content').innerHTML = `
+            <div class="max-w-2xl mx-auto px-4 py-24">
+                <h1 class="text-4xl font-bold heading-font mb-10">Your Cart</h1>
+                ${cart.length ? `
+                    <div class="bg-white rounded-3xl border overflow-hidden mb-8 shadow-lg">
+                        <div class="p-8 space-y-6">
+                            ${cart.map((item, idx) => `
+                                <div class="flex justify-between items-center">
+                                    <div>
+                                        <h4 class="font-bold">${item.title}</h4>
+                                        <p class="text-xs text-slate-400">Qty: ${item.qty}</p>
+                                    </div>
+                                    <span class="font-bold text-[#1e3a5f]">$${(item.price * item.qty).toFixed(2)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="bg-slate-50 p-8 flex justify-between items-center">
+                            <span class="text-xl font-bold">Total: $${subtotal.toFixed(2)}</span>
+                            <button onclick="handleCheckout()" class="bg-[#1e3a5f] text-white px-10 py-3 rounded-xl font-bold">Checkout</button>
+                        </div>
+                    </div>
+                ` : `
+                    <div class="text-center py-20 bg-white border rounded-3xl shadow-sm">
+                        <i data-lucide="shopping-cart" class="w-16 h-16 text-slate-200 mx-auto mb-4"></i>
+                        <p class="text-slate-400">Nothing here yet.</p>
+                        <button onclick="navigate('bookstore')" class="mt-4 text-[#1e3a5f] font-bold">Go Shopping</button>
+                    </div>
+                `}
+            </div>
+        `;
+        lucide.createIcons();
+    }
+
+    // Handlers
+    window.handleUserLogin = () => {
+        const name = document.getElementById('std-name').value;
+        const email = document.getElementById('std-email').value;
+        if(name && email) {
+            currentUser = { name, email };
+            document.getElementById('portal-nav-text').textContent = name;
+            showToast(`Welcome back, ${name}`, 'success');
+            renderPortal();
+        }
+    };
+
+    window.logout = () => {
+        currentUser = null;
+        document.getElementById('portal-nav-text').textContent = 'Student Portal';
+        navigate('home');
+    };
+
+    window.addToCart = (id) => {
+        const book = books.find(b => b.id === id);
+        const existing = cart.find(i => i.id === id);
+        if(existing) existing.qty++;
+        else cart.push({...book, qty: 1});
+        updateCartCount();
+        showToast('Added to cart', 'success');
+    };
+
+    function updateCartCount() {
+        const count = cart.reduce((acc, curr) => acc + curr.qty, 0);
+        const badge = document.getElementById('cart-count');
+        if(count > 0) {
+            badge.textContent = count;
+            badge.classList.remove('hidden');
+        } else badge.classList.add('hidden');
+    }
+
+    window.handleCheckout = async () => {
+        if(!currentUser) { showToast('Please login first', 'error'); navigate('portal'); return; }
+        const total = cart.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
+        const order = {
+            type: 'order',
+            title: `Order #${Date.now().toString(36).toUpperCase()}`,
+            author: currentUser.name,
+            total: total.toString(),
+            timestamp: new Date().toISOString()
+        };
+        const res = await window.dataSdk.create(order);
+        if(res.isOk) {
+            cart = [];
+            updateCartCount();
+            showToast('Order Placed!', 'success');
+            navigate('portal');
+        }
+    };
+
+    window.showPostForm = () => document.getElementById('post-form-container').classList.toggle('hidden');
+
+    window.submitPost = async () => {
+        if(!currentUser) { showToast('Login to post', 'error'); navigate('portal'); return; }
+        const title = document.getElementById('f-title').value;
+        const content = document.getElementById('f-content').value;
+        if(!title || !content) return;
+        
+        const res = await window.dataSdk.create({
+            type: 'forum_post',
+            title, content,
+            author: currentUser.name,
+            timestamp: new Date().toISOString()
+        });
+        if(res.isOk) {
+            showToast('Post created!', 'success');
+            document.getElementById('post-form-container').classList.add('hidden');
+        }
+    };
+
+    // Admin Panel Controls
+    window.showAdminModal = () => document.getElementById('admin-modal').classList.remove('hidden');
+    window.closeAdminModal = () => document.getElementById('admin-modal').classList.add('hidden');
+    window.handleAdminLogin = (e) => {
+        e.preventDefault();
+        const code = document.getElementById('admin-code').value;
+        if(code === 'admin123') {
+            adminUser = { name: 'Admin' };
+            closeAdminModal();
+            navigate('admin');
+        } else {
+            showToast('Invalid credentials', 'error');
+        }
+    };
+    window.adminLogout = () => { adminUser = null; navigate('home'); };
+
+    // AI Chat Mockup
+    window.toggleAIChat = () => document.getElementById('ai-chat').classList.toggle('hidden');
+    window.sendChatMessage = () => {
+        const input = document.getElementById('chat-input');
+        const box = document.getElementById('chat-messages');
+        if(!input.value) return;
+        box.innerHTML += `<div class="bg-[#1e3a5f] text-white p-2 rounded-lg ml-8">${input.value}</div>`;
+        setTimeout(() => {
+            box.innerHTML += `<div class="bg-slate-200 p-2 rounded-lg mr-8">That sounds interesting! How can I help with your studies today?</div>`;
+            box.scrollTop = box.scrollHeight;
+        }, 800);
+        input.value = '';
+    };
+
+    // Toast Notification
+    function showToast(msg, type) {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-20 right-6 px-6 py-3 rounded-xl shadow-2xl text-white font-bold z-[100] fade-in ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+        toast.textContent = msg;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // Init Data Sync
+    window.dataSdk.init({
+        onDataChanged(data) {
+            forumPosts = data.filter(d => d.type === 'forum_post');
+            orders = data.filter(d => d.type === 'order');
+            // Refresh current view if needed
+            if(currentPage === 'forum') renderForum();
+            if(currentPage === 'admin') renderAdmin();
+            if(currentPage === 'portal') renderPortal();
+        }
+    });
+
+    // Start App
+    navigate('home');
+  </script>
+</body>
+</html>
